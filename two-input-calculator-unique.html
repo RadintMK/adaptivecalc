@@ -284,6 +284,24 @@
     </div>
 
     <script>
+const number1Input = document.getElementById('number1');
+const number2Input = document.getElementById('number2');
+const operationSelect = document.getElementById('operation');
+const historyContainer = document.getElementById('history');
+const currentResult = document.getElementById('current-result');
+const calculations = [];
+
+function showError(inputElement, errorElement, message) {
+    inputElement.classList.add('error');
+    errorElement.textContent = message;
+    errorElement.classList.add('visible');
+
+    setTimeout(() => {
+        inputElement.classList.remove('error');
+        errorElement.classList.remove('visible');
+    }, 3000);
+}
+
 function preprocessInput(value) {
     value = value.replace(',', '.');
     value = value.replace(/\s/g, '');
@@ -317,6 +335,32 @@ function validateNumber(value, inputElement, errorElement) {
     }
 
     return true;
+}
+
+function formatNumber(number) {
+    return Number(number.toFixed(8)).toString();
+}
+
+function updateHistory() {
+    historyContainer.innerHTML = calculations
+        .slice(-3)
+        .map((calc, index) => `
+            <div class="history-item" style="animation-delay: ${index * 0.1}s">
+                ${calc}
+            </div>
+        `)
+        .join('');
+}
+
+function animateResult(element, value) {
+    element.style.transform = 'translateY(-10px)';
+    element.style.opacity = '0';
+
+    setTimeout(() => {
+        element.textContent = value;
+        element.style.transform = 'translateY(0)';
+        element.style.opacity = '1';
+    }, 150);
 }
 
 function setupInputHandler(inputElement) {
@@ -410,6 +454,18 @@ function calculate() {
             'Произошла ошибка при вычислении');
     }
 }
+
+number1Input.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        number2Input.focus();
+    }
+});
+
+number2Input.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        calculate();
+    }
+});
     </script>
 </body>
 </html>
