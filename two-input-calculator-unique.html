@@ -252,7 +252,7 @@
 <body>
     <div class="calculator">
         <h1 class="title">Калькулятор</h1>
-        
+
         <div class="input-area">
             <div class="input-group">
                 <input type="text" id="number1" placeholder="Первое число">
@@ -284,188 +284,175 @@
     </div>
 
     <script>
-const number1Input = document.getElementById('number1');
-const number2Input = document.getElementById('number2');
-const operationSelect = document.getElementById('operation');
-const historyContainer = document.getElementById('history');
-const currentResult = document.getElementById('current-result');
-const calculations = [];
+        const number1Input = document.getElementById('number1');
+        const number2Input = document.getElementById('number2');
+        const operationSelect = document.getElementById('operation');
+        const historyContainer = document.getElementById('history');
+        const currentResult = document.getElementById('current-result');
+        const calculations = [];
 
-function showError(inputElement, errorElement, message) {
-    inputElement.classList.add('error');
-    errorElement.textContent = message;
-    errorElement.classList.add('visible');
+        function showError(inputElement, errorElement, message) {
+            inputElement.classList.add('error');
+            errorElement.textContent = message;
+            errorElement.classList.add('visible');
 
-    setTimeout(() => {
-        inputElement.classList.remove('error');
-        errorElement.classList.remove('visible');
-    }, 3000);
-}
-
-function preprocessInput(value) {
-    value = value.replace(',', '.');
-    value = value.replace(/\s/g, '');
-    if (value.endsWith('%')) {
-        value = value.slice(0, -1);
-        value = String(parseFloat(value) / 100);
-    }
-    return value;
-}
-
-function validateNumber(value, inputElement, errorElement) {
-    inputElement.classList.remove('error');
-    errorElement.classList.remove('visible');
-
-    const processedValue = preprocessInput(value);
-
-    if (processedValue.trim() === '') {
-        showError(inputElement, errorElement, 'Поле не может быть пустым');
-        return false;
-    }
-
-    if (!/^-?\d*[.,]?\d*%?$/.test(value)) {
-        showError(inputElement, errorElement, 'Введите корректное число');
-        return false;
-    }
-
-    const number = parseFloat(processedValue);
-    if (!isFinite(number)) {
-        showError(inputElement, errorElement, 'Некорректное число');
-        return false;
-    }
-
-    return true;
-}
-
-function formatNumber(number) {
-    return Number(number.toFixed(8)).toString();
-}
-
-function updateHistory() {
-    historyContainer.innerHTML = calculations
-        .slice(-3)
-        .map((calc, index) => `
-            <div class="history-item" style="animation-delay: ${index * 0.1}s">
-                ${calc}
-            </div>
-        `)
-        .join('');
-}
-
-function animateResult(element, value) {
-    element.style.transform = 'translateY(-10px)';
-    element.style.opacity = '0';
-
-    setTimeout(() => {
-        element.textContent = value;
-        element.style.transform = 'translateY(0)';
-        element.style.opacity = '1';
-    }, 150);
-}
-
-function setupInputHandler(inputElement) {
-    inputElement.addEventListener('input', function(e) {
-        let value = e.target.value;
-        
-        if (!/^-?\d*[.,]?\d*%?$/.test(value)) {
-            value = value.replace(/[^\d%.,\-]/g, '');
-            e.target.value = value;
+            setTimeout(() => {
+                inputElement.classList.remove('error');
+                errorElement.classList.remove('visible');
+            }, 3000);
         }
 
-        if (value.includes('%') && !value.endsWith('%')) {
-            value = value.replace('%', '') + '%';
-            e.target.value = value;
-        }
+        function parseCustomNumber(value) {
+            // Replace comma with dot for decimal separator
+            value = value.replace(',', '.');
 
-        if (value.includes('-') && value[0] !== '-') {
-            value = value.replace(/-/g, '');
-            e.target.value = value;
-        }
-
-        let hasDecimalSeparator = false;
-        value = value.split('').filter(char => {
-            if (char === '.' || char === ',') {
-                if (hasDecimalSeparator) return false;
-                hasDecimalSeparator = true;
-                return true;
+            // Handle percentage
+            if (value.endsWith('%')) {
+                return parseFloat(value.slice(0, -1)) / 100;
             }
-            return true;
-        }).join('');
-        e.target.value = value;
-    });
-}
 
-setupInputHandler(number1Input);
-setupInputHandler(number2Input);
-
-function calculate() {
-    const num1 = preprocessInput(number1Input.value);
-    const num2 = preprocessInput(number2Input.value);
-    const operation = operationSelect.value;
-
-    const isValid1 = validateNumber(number1Input.value, number1Input, document.getElementById('error1'));
-    const isValid2 = validateNumber(number2Input.value, number2Input, document.getElementById('error2'));
-
-    if (!isValid1 || !isValid2) {
-        return;
-    }
-
-    const n1 = parseFloat(num1);
-    const n2 = parseFloat(num2);
-    let result;
-
-    try {
-        switch (operation) {
-            case '+':
-                result = n1 + n2;
-                break;
-            case '-':
-                result = n1 - n2;
-                break;
-            case '*':
-                result = n1 * n2;
-                break;
-            case '/':
-                if (n2 === 0) {
-                    showError(number2Input, document.getElementById('error2'), 
-                        'Деление на ноль невозможно');
-                    return;
-                }
-                result = n1 / n2;
-                break;
-            case '**':
-                if (n1 === 0 && n2 < 0) {
-                    showError(number2Input, document.getElementById('error2'), 
-                        'Нельзя возвести 0 в отрицательную степень');
-                    return;
-                }
-                result = Math.pow(n1, n2);
-                break;
+            return parseFloat(value);
         }
 
-        const formattedResult = formatNumber(result);
-        const calculation = `${number1Input.value} ${operation} ${number2Input.value} = ${formattedResult}`;
-        calculations.push(calculation);
-        updateHistory();
-        animateResult(currentResult, formattedResult);
+        function validateNumber(value, inputElement, errorElement) {
+            inputElement.classList.remove('error');
+            errorElement.classList.remove('visible');
 
-    } catch (error) {
-        showError(number1Input, document.getElementById('error1'), 
-            'Произошла ошибка при вычислении');
-    }
-}
+            if (value.trim() === '') {
+                showError(inputElement, errorElement, 'Поле не может быть пустым');
+                return false;
+            }
 
-number1Input.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        number2Input.focus();
-    }
-});
+            // Разрешаем ввод чисел с десятичной точкой, запятой или минусом, и проценты
+            if (!/^-?(\d+([.,]\d*)?|\d*[.,]\d+)%?$/.test(value)) {
+                showError(inputElement, errorElement, 'Введите корректное число');
+                return false;
+            }
 
-number2Input.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        calculate();
-    }
-});
+            return true;
+        }
+
+        function formatNumber(number) {
+            // Ограничиваем количество десятичных знаков и убираем лишние нули
+            return Number(number.toFixed(8)).toString();
+        }
+
+        function updateHistory() {
+            historyContainer.innerHTML = calculations
+                .slice(-3)
+                .map((calc, index) => `
+                    <div class="history-item" style="animation-delay: ${index * 0.1}s">
+                        ${calc}
+                    </div>
+                `)
+                .join('');
+        }
+
+        function animateResult(element, value) {
+            element.style.transform = 'translateY(-10px)';
+            element.style.opacity = '0';
+
+            setTimeout(() => {
+                element.textContent = value;
+                element.style.transform = 'translateY(0)';
+                element.style.opacity = '1';
+            }, 150);
+        }
+
+        function calculate() {
+            const num1 = number1Input.value;
+            const num2 = number2Input.value;
+            const operation = operationSelect.value;
+
+            const isValid1 = validateNumber(num1, number1Input, document.getElementById('error1'));
+            const isValid2 = validateNumber(num2, number2Input, document.getElementById('error2'));
+
+            if (!isValid1 || !isValid2) {
+                return;
+            }
+
+            let n1 = parseFloat(num1.replace(',', '.'));
+            let n2;
+            let result;
+
+            try {
+                // Special handling for percentage in different operations
+                if (num2.endsWith('%')) {
+                    switch (operation) {
+                        case '+':
+                            n2 = n1 * parseCustomNumber(num2);
+                            result = n1 + n2;
+                            break;
+                        case '-':
+                            n2 = n1 * parseCustomNumber(num2);
+                            result = n1 - n2;
+                            break;
+                        case '*':
+                            n2 = parseFloat(num2.replace(',', '.'));
+                            result = n1 * n2;
+                            break;
+                        case '/':
+                            n2 = parseFloat(num2.replace(',', '.'));
+                            
+                            if (n2 === 0) {
+                                showError(number2Input, document.getElementById('error2'), 
+                                    'Деление на ноль невозможно');
+                                return;
+                            }
+                            result = n1 / n2;
+                            break;
+                        case '**':
+                            n2 = parseFloat(num2.replace(',', '.'));
+                            
+                            if (n1 === 0 && n2 < 0) {
+                                showError(number2Input, document.getElementById('error2'), 
+                                    'Нельзя возвести 0 в отрицательную степень');
+                                return;
+                            }
+                            result = Math.pow(n1, n2);
+                            break;
+                    }
+                } else {
+                    n2 = parseFloat(num2.replace(',', '.'));
+                    switch (operation) {
+                        case '+':
+                            result = n1 + n2;
+                            break;
+                        case '-':
+                            result = n1 - n2;
+                            break;
+                        case '*':
+                            result = n1 * n2;
+                            break;
+                        case '/':
+                            if (n2 === 0) {
+                                showError(number2Input, document.getElementById('error2'), 
+                                    'Деление на ноль невозможно');
+                                return;
+                            }
+                            result = n1 / n2;
+                            break;
+                        case '**':
+                            if (n1 === 0 && n2 < 0) {
+                                showError(number2Input, document.getElementById('error2'), 
+                                    'Нельзя возвести 0 в отрицательную степень');
+                                return;
+                            }
+                            result = Math.pow(n1, n2);
+                            break;
+                    }
+                }
+
+                const formattedResult = formatNumber(result);
+                const calculation = `${num1} ${operationSelect.options[operationSelect.selectedIndex].text} ${num2} = ${formattedResult}`;
+                calculations.push(calculation);
+
+                animateResult(currentResult, formattedResult);
+                updateHistory();
+            } catch (error) {
+                showError(number2Input, document.getElementById('error2'), 'Ошибка вычисления');
+            }
+        }
     </script>
 </body>
 </html>
