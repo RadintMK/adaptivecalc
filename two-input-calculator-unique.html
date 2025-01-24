@@ -284,171 +284,132 @@
     </div>
 
     <script>
-        const number1Input = document.getElementById('number1');
-        const number2Input = document.getElementById('number2');
-        const operationSelect = document.getElementById('operation');
-        const historyContainer = document.getElementById('history');
-        const currentResult = document.getElementById('current-result');
-        const calculations = [];
+function preprocessInput(value) {
+    value = value.replace(',', '.');
+    value = value.replace(/\s/g, '');
+    if (value.endsWith('%')) {
+        value = value.slice(0, -1);
+        value = String(parseFloat(value) / 100);
+    }
+    return value;
+}
 
-        function showError(inputElement, errorElement, message) {
-            inputElement.classList.add('error');
-            errorElement.textContent = message;
-            errorElement.classList.add('visible');
-            
-            // Автоматическое скрытие ошибки через 3 секунды
-            setTimeout(() => {
-                inputElement.classList.remove('error');
-                errorElement.classList.remove('visible');
-            }, 3000);
+function validateNumber(value, inputElement, errorElement) {
+    inputElement.classList.remove('error');
+    errorElement.classList.remove('visible');
+
+    const processedValue = preprocessInput(value);
+
+    if (processedValue.trim() === '') {
+        showError(inputElement, errorElement, 'Поле не может быть пустым');
+        return false;
+    }
+
+    if (!/^-?\d*[.,]?\d*%?$/.test(value)) {
+        showError(inputElement, errorElement, 'Введите корректное число');
+        return false;
+    }
+
+    const number = parseFloat(processedValue);
+    if (!isFinite(number)) {
+        showError(inputElement, errorElement, 'Некорректное число');
+        return false;
+    }
+
+    return true;
+}
+
+function setupInputHandler(inputElement) {
+    inputElement.addEventListener('input', function(e) {
+        let value = e.target.value;
+        
+        if (!/^-?\d*[.,]?\d*%?$/.test(value)) {
+            value = value.replace(/[^\d%.,\-]/g, '');
+            e.target.value = value;
         }
 
-        function validateNumber(value, inputElement, errorElement) {
-            inputElement.classList.remove('error');
-            errorElement.classList.remove('visible');
+        if (value.includes('%') && !value.endsWith('%')) {
+            value = value.replace('%', '') + '%';
+            e.target.value = value;
+        }
 
-            if (value.trim() === '') {
-                showError(inputElement, errorElement, 'Поле не может быть пустым');
-                return false;
+        if (value.includes('-') && value[0] !== '-') {
+            value = value.replace(/-/g, '');
+            e.target.value = value;
+        }
+
+        let hasDecimalSeparator = false;
+        value = value.split('').filter(char => {
+            if (char === '.' || char === ',') {
+                if (hasDecimalSeparator) return false;
+                hasDecimalSeparator = true;
+                return true;
             }
-
-            // Разрешаем ввод чисел с десятичной точкой или минусом
-            if (!/^-?\d*\.?\d*$/.test(value)) {
-                showError(inputElement, errorElement, 'Введите корректное число');
-                return false;
-            }
-
-            const number = parseFloat(value);
-            if (!isFinite(number)) {
-                showError(inputElement, errorElement, 'Некорректное число');
-                return false;
-            }
-
             return true;
-        }
-        function formatNumber(number) {
-            // Ограничиваем количество десятичных знаков и убираем лишние нули
-            return Number(number.toFixed(8)).toString();
-        }
+        }).join('');
+        e.target.value = value;
+    });
+}
 
-        function updateHistory() {
-            historyContainer.innerHTML = calculations
-                .slice(-3)
-                .map((calc, index) => `
-                    <div class="history-item" style="animation-delay: ${index * 0.1}s">
-                        ${calc}
-                    </div>
-                `)
-                .join('');
-        }
+setupInputHandler(number1Input);
+setupInputHandler(number2Input);
 
-        function animateResult(element, value) {
-            element.style.transform = 'translateY(-10px)';
-            element.style.opacity = '0';
-            
-            setTimeout(() => {
-                element.textContent = value;
-                element.style.transform = 'translateY(0)';
-                element.style.opacity = '1';
-            }, 150);
-        }
+function calculate() {
+    const num1 = preprocessInput(number1Input.value);
+    const num2 = preprocessInput(number2Input.value);
+    const operation = operationSelect.value;
 
-        function calculate() {
-            const num1 = number1Input.value;
-            const num2 = number2Input.value;
-            const operation = operationSelect.value;
+    const isValid1 = validateNumber(number1Input.value, number1Input, document.getElementById('error1'));
+    const isValid2 = validateNumber(number2Input.value, number2Input, document.getElementById('error2'));
 
-            const isValid1 = validateNumber(num1, number1Input, document.getElementById('error1'));
-            const isValid2 = validateNumber(num2, number2Input, document.getElementById('error2'));
+    if (!isValid1 || !isValid2) {
+        return;
+    }
 
-            if (!isValid1 || !isValid2) {
-                return;
-            }
+    const n1 = parseFloat(num1);
+    const n2 = parseFloat(num2);
+    let result;
 
-            const n1 = parseFloat(num1);
-            const n2 = parseFloat(num2);
-            let result;
-
-            try {
-                switch (operation) {
-                    case '+':
-                        result = n1 + n2;
-                        break;
-                    case '-':
-                        result = n1 - n2;
-                        break;
-                    case '*':
-                        result = n1 * n2;
-                        break;
-                    case '/':
-                        if (n2 === 0) {
-                            showError(number2Input, document.getElementById('error2'), 
-                                'Деление на ноль невозможно');
-                            return;
-                        }
-                        result = n1 / n2;
-                        break;
-                    case '**':
-                        if (n1 === 0 && n2 < 0) {
-                            showError(number2Input, document.getElementById('error2'), 
-                                'Нельзя возвести 0 в отрицательную степень');
-                            return;
-                        }
-                        result = Math.pow(n1, n2);
-                        break;
-                }
-
-                if (!isFinite(result)) {
-                    animateResult(currentResult, 'Слишком большое число');
+    try {
+        switch (operation) {
+            case '+':
+                result = n1 + n2;
+                break;
+            case '-':
+                result = n1 - n2;
+                break;
+            case '*':
+                result = n1 * n2;
+                break;
+            case '/':
+                if (n2 === 0) {
+                    showError(number2Input, document.getElementById('error2'), 
+                        'Деление на ноль невозможно');
                     return;
                 }
-
-                const operationSymbol = {
-                    '+': '+',
-                    '-': '−',
-                    '*': '×',
-                    '/': '÷',
-                    '**': '^'
-                }[operation];
-
-                const formattedResult = formatNumber(result);
-                const calculation = `${formatNumber(n1)} ${operationSymbol} ${formatNumber(n2)} = ${formattedResult}`;
-                
-                calculations.push(calculation);
-                if (calculations.length > 3) {
-                    calculations.shift();
+                result = n1 / n2;
+                break;
+            case '**':
+                if (n1 === 0 && n2 < 0) {
+                    showError(number2Input, document.getElementById('error2'), 
+                        'Нельзя возвести 0 в отрицательную степень');
+                    return;
                 }
-                
-                updateHistory();
-                animateResult(currentResult, formattedResult);
-
-                // Добавляем эффект успешного вычисления
-                const calculatorElement = document.querySelector('.calculator');
-                calculatorElement.style.boxShadow = '0 8px 32px 0 rgba(46, 204, 113, 0.3)';
-                setTimeout(() => {
-                    calculatorElement.style.boxShadow = '';
-                }, 500);
-
-            } catch (e) {
-                animateResult(currentResult, 'Ошибка вычисления');
-            }
+                result = Math.pow(n1, n2);
+                break;
         }
 
-        // Обработка нажатия Enter
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'Enter') {
-                calculate();
-            }
-        });
+        const formattedResult = formatNumber(result);
+        const calculation = `${number1Input.value} ${operation} ${number2Input.value} = ${formattedResult}`;
+        calculations.push(calculation);
+        updateHistory();
+        animateResult(currentResult, formattedResult);
 
-        // Валидация при вводе
-        number1Input.addEventListener('input', () => {
-            validateNumber(number1Input.value, number1Input, document.getElementById('error1'));
-        });
-
-        number2Input.addEventListener('input', () => {
-            validateNumber(number2Input.value, number2Input, document.getElementById('error2'));
-        });
+    } catch (error) {
+        showError(number1Input, document.getElementById('error1'), 
+            'Произошла ошибка при вычислении');
+    }
+}
     </script>
 </body>
 </html>
