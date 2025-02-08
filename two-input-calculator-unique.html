@@ -303,10 +303,8 @@
         }
 
         function parseCustomNumber(value) {
-            // Replace comma with dot for decimal separator
             value = value.replace(',', '.');
 
-            // Handle percentage
             if (value.endsWith('%')) {
                 return parseFloat(value.slice(0, -1)) / 100;
             }
@@ -323,7 +321,6 @@
                 return false;
             }
 
-            // Разрешаем ввод чисел с десятичной точкой, запятой или минусом, и проценты
             if (!/^-?(\d+([.,]\d*)?|\d*[.,]\d+)%?$/.test(value)) {
                 showError(inputElement, errorElement, 'Введите корректное число');
                 return false;
@@ -333,7 +330,6 @@
         }
 
         function formatNumber(number) {
-            // Ограничиваем количество десятичных знаков и убираем лишние нули
             return Number(number.toFixed(8)).toString();
         }
 
@@ -376,7 +372,6 @@
             let result;
 
             try {
-                // Special handling for percentage in different operations
                 if (num2.endsWith('%')) {
                     switch (operation) {
                         case '+':
